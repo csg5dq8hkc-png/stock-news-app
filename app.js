@@ -8,7 +8,7 @@ async function getNews() {
     return;
   }
 
-  const API_KEY = "SIIN_PANED_OMA_API_KEY";
+  const API_KEY = "d52lk91r01qggm5sh1g0d52lk91r01qggm5sh1gg";
   const today = new Date().toISOString().split("T")[0];
 
   const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${today}&to=${today}&token=${API_KEY}`;
