@@ -1,5 +1,5 @@
 async function getNews() {
-  const symbol = document.getElementById("symbol").value.trim();
+  const symbol = document.getElementById("symbol").value.trim().toUpperCase();
   const results = document.getElementById("results");
   const priceInfo = document.getElementById("priceInfo");
   const ctx = document.getElementById('priceChart').getContext('2d');
@@ -13,14 +13,13 @@ async function getNews() {
     return;
   }
 
-  const API_KEY = "d52mguhr01qggm5slv10d52mguhr01qggm5slv1g"; // Finnhub API
+  const API_KEY = "d52mq0pr01qggm5snfrgd52mq0pr01qggm5snfs0"; // Finnhub API
 
   try {
     // --- Hetke hind + eelturu/järelturu ---
     const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
     const resQuote = await fetch(quoteUrl);
     const dataQuote = await resQuote.json();
-    console.log("Quote data:", dataQuote);
 
     let currentPrice = dataQuote.c || dataQuote.dp || dataQuote.d || dataQuote.pc;
     let marketStatus = "Turg suletud";
@@ -36,7 +35,6 @@ async function getNews() {
     const sentimentUrl = `https://finnhub.io/api/v1/news-sentiment?symbol=${symbol}&token=${API_KEY}`;
     const resSent = await fetch(sentimentUrl);
     const dataSent = await resSent.json();
-    console.log("Sentiment data:", dataSent);
 
     const bullish = dataSent.sentiment?.bullishPercent || 0.5;
     const bearish = dataSent.sentiment?.bearishPercent || 0.5;
@@ -161,4 +159,8 @@ async function getNews() {
       results.appendChild(li);
     });
 
-  } c
+  } catch(e) {
+    console.error(e);
+    results.innerHTML = "Viga andmete laadimisel – võib olla iPhone CORS piirang";
+  }
+}
