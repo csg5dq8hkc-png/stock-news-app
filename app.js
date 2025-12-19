@@ -13,7 +13,7 @@ async function getNews() {
     return;
   }
 
-  const API_KEY = "d52mdjhr01qggm5slcegd52mdjhr01qggm5slcf0";
+  const API_KEY = "d52mdq9r01qggm5sldogd52mdq9r01qggm5sldp0";
 
   try {
     // --- Hetke hind ---
@@ -118,3 +118,4 @@ async function getNews() {
     priceInfo.innerHTML = "";
   }
 }
+
