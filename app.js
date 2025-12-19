@@ -9,9 +9,14 @@ async function getNews() {
   }
 
   const API_KEY = "d52lk91r01qggm5sh1g0d52lk91r01qggm5sh1gg";
-  const today = new Date().toISOString().split("T")[0];
+ // loo kuupäev 3 päeva tagasi
+const from = new Date();
+from.setDate(from.getDate() - 3); 
+const fromStr = from.toISOString().split("T")[0];
+const toStr = new Date().toISOString().split("T")[0];
 
-  const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${today}&to=${today}&token=${API_KEY}`;
+// URL päring viimase 3 päeva uudiste jaoks
+const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${fromStr}&to=${toStr}&token=${API_KEY}`;
 
   try {
     const res = await fetch(url);
@@ -37,3 +42,4 @@ async function getNews() {
     results.innerHTML = "Viga andmete laadimisel";
   }
 }
+
