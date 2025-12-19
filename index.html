@@ -2,24 +2,26 @@
 <html lang="et">
 <head>
   <meta charset="UTF-8">
-  <title>Aktsia uudised</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
+  <title>Aktsia uudised ja hind</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#111">
+  <link rel="manifest" href="manifest.json">
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+  <h2>📈 Aktsia uudised ja hind</h2>
 
-<h2>📈 Aktsia viimased uudised</h2>
+  <input id="symbol" placeholder="Nt AAPL või OCGN" />
+  <button onclick="getNews()">Otsi</button>
 
-<input id="symbol" placeholder="Nt AAPL või OCGN" />
-<button onclick="getNews()">Otsi</button>
+  <div id="priceInfo" style="margin-top: 20px;"></div>
+  <canvas id="priceChart" width="400" height="200" style="margin-top: 20px;"></canvas>
 
-<ul id="results"></ul>
+  <h3>Viimased uudised</h3>
+  <ul id="results"></ul>
 
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
-
 </html>
