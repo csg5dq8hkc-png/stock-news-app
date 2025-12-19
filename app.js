@@ -13,19 +13,43 @@ async function getNews() {
     return;
   }
 
-  const API_KEY = "d52mdq9r01qggm5sldogd52mdq9r01qggm5sldp0";
+  const API_KEY = "d52mdq9r01qggm5sldogd52mdq9r01qggm5sldp0"; // Finnhub API
 
   try {
-    // --- Hetke hind ---
+    // --- Hetke hind + eelturu / järelturu ---
     const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
     const resQuote = await fetch(quoteUrl);
     const dataQuote = await resQuote.json();
+
+    let currentPrice = dataQuote.c || dataQuote.pc; // kui turg suletud, näita eelmise sulgemishinda
+    let marketStatus = dataQuote.c && dataQuote.c !== dataQuote.pc ? "Turg avatud" : "Turg suletud";
+
     priceInfo.innerHTML = `
-      <strong>${symbol} hetke hind:</strong> $${dataQuote.c} 
-      (H: $${dataQuote.h}, L: $${dataQuote.l})
+      <strong>${symbol} hind:</strong> $${currentPrice} (${marketStatus})<br>
+      Päeva H/L: $${dataQuote.h}/${dataQuote.l} | Eelmise sulgemishind: $${dataQuote.pc}
     `;
 
-    // --- Päevane graafik ---
+    // --- Turu sentiment ---
+    const sentimentUrl = `https://finnhub.io/api/v1/news-sentiment?symbol=${symbol}&token=${API_KEY}`;
+    const resSent = await fetch(sentimentUrl);
+    const dataSent = await resSent.json();
+
+    const bullish = dataSent.sentiment?.bullishPercent || 0.5;
+    const bearish = dataSent.sentiment?.bearishPercent || 0.5;
+
+    let marketSentiment = "Neutral";
+    if(bullish > 0.75) marketSentiment = "Extreme Bullish";
+    else if(bullish > 0.55) marketSentiment = "Bullish";
+    else if(bearish > 0.75) marketSentiment = "Extreme Bearish";
+    else if(bearish > 0.55) marketSentiment = "Bearish";
+
+    let sentimentColor = "black";
+    if(marketSentiment.includes("Bullish")) sentimentColor = "green";
+    if(marketSentiment.includes("Bearish")) sentimentColor = "red";
+
+    priceInfo.innerHTML += `<br><strong style="color:${sentimentColor}">Turu sentiment: ${marketSentiment}</strong>`;
+
+    // --- Päevane graafik (5-min candles) ---
     const now = Math.floor(Date.now()/1000);
     const from = now - 24*60*60; // viimase 24h andmed
     const candleUrl = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=5&from=${from}&to=${now}&token=${API_KEY}`;
@@ -45,10 +69,7 @@ async function getNews() {
             fill: false
           }]
         },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: true } }
-        }
+        options: { responsive: true }
       });
     }
 
@@ -93,7 +114,7 @@ async function getNews() {
     combinedNews.sort((a,b) => b.datetime - a.datetime);
     results.innerHTML = "";
 
-    // --- Kuvamine + sentiment ---
+    // --- Kuvamine + sentiment värv ---
     combinedNews.slice(0,3).forEach(n => {
       const li = document.createElement("li");
       const text = (n.headline + " " + (n.summary||"")).toLowerCase();
@@ -118,4 +139,3 @@ async function getNews() {
     priceInfo.innerHTML = "";
   }
 }
-
