@@ -8,39 +8,42 @@ async function getNews() {
     return;
   }
 
-  const API_KEY = "d52lk91r01qggm5sh1g0d52lk91r01qggm5sh1gg"; // Pane siia oma Finnhub API key
+  const API_KEY = "d52lk91r01qggm5sh1g0d52lk91r01qggm5sh1gg";
 
-  // Viimase 3 päeva uudised Finnhubist
+  // Finnhub viimase 3 päeva uudised
   const from = new Date();
   from.setDate(from.getDate() - 3); 
   const fromStr = from.toISOString().split("T")[0];
   const toStr = new Date().toISOString().split("T")[0];
-
   const finnUrl = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${fromStr}&to=${toStr}&token=${API_KEY}`;
-  
-  // Finteli RSS feed kaudu rss2json API
-  const fintelUrl = `https://api.rss2json.com/v1/api.json?rss_url=https://www.fintel.io/news/rss?symbol=${symbol}`;
+
+  // Fintel RSS koos CORS proxyga
+  const corsProxy = "https://api.allorigins.win/get?url=";
+  const fintelUrl = `${corsProxy}${encodeURIComponent("https://www.fintel.io/news/rss?symbol=" + symbol)}`;
 
   try {
-    // Finnhub uudised
+    // Finnhub
     const resFinn = await fetch(finnUrl);
     const dataFinn = await resFinn.json();
 
-    // Finteli uudised
+    // Fintel RSS via CORS proxy
     const resFintel = await fetch(fintelUrl);
-    const dataFintel = await resFintel.json();
-
-    const fintelNews = dataFintel.items.map(item => ({
-      headline: item.title,
-      summary: item.description,
-      url: item.link,
-      datetime: new Date(item.pubDate).getTime() / 1000,
+    const rawFintel = await resFintel.json(); // allorigins tagastab {contents: "...rss xml..."}
+    
+    // Teeme lihtsa regex parse XML → title, link, pubDate, description
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(rawFintel.contents, "text/xml");
+    const items = xmlDoc.querySelectorAll("item");
+    const fintelNews = Array.from(items).map(item => ({
+      headline: item.querySelector("title")?.textContent || "",
+      summary: item.querySelector("description")?.textContent || "",
+      url: item.querySelector("link")?.textContent || "#",
+      datetime: new Date(item.querySelector("pubDate")?.textContent || "").getTime() / 1000,
       source: "Fintel"
     }));
 
     // Koonda uudised
     const combinedNews = [...dataFinn.slice(0,3), ...fintelNews.slice(0,3)];
-
     if (!combinedNews.length) {
       results.innerHTML = "Uudiseid viimase 3 päeva jooksul ei leitud.";
       return;
@@ -54,7 +57,6 @@ async function getNews() {
     combinedNews.slice(0,3).forEach(n => {
       const li = document.createElement("li");
 
-      // Lihtne sentiment värvikood
       let color = "black";
       const headline = n.headline.toLowerCase();
       if (headline.includes("gain") || headline.includes("profit") || headline.includes("rise")) color = "green";
@@ -71,7 +73,7 @@ async function getNews() {
 
   } catch(e) {
     console.error(e);
-    results.innerHTML = "Viga andmete laadimisel";
+    results.innerHTML = "Viga andmete laadimisel – võib olla iPhone CORS piirang";
   }
 }
 
