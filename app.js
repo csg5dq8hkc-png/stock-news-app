@@ -13,16 +13,19 @@ async function getNews() {
     return;
   }
 
-  const API_KEY = "d52mdq9r01qggm5sldogd52mdq9r01qggm5sldp0"; // Finnhub API
+  const API_KEY = "d52mguhr01qggm5slv10d52mguhr01qggm5slv1g"; // Finnhub API
 
   try {
-    // --- Hetke hind + eelturu / järelturu ---
+    // --- Hetke hind + eelturu/järelturu ---
     const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
     const resQuote = await fetch(quoteUrl);
     const dataQuote = await resQuote.json();
+    console.log("Quote data:", dataQuote);
 
-    let currentPrice = dataQuote.c || dataQuote.pc; // kui turg suletud, näita eelmise sulgemishinda
-    let marketStatus = dataQuote.c && dataQuote.c !== dataQuote.pc ? "Turg avatud" : "Turg suletud";
+    let currentPrice = dataQuote.c || dataQuote.dp || dataQuote.d || dataQuote.pc;
+    let marketStatus = "Turg suletud";
+    if(dataQuote.c && dataQuote.c !== dataQuote.pc) marketStatus = "Turg avatud";
+    else if(dataQuote.dp || dataQuote.d) marketStatus = "Eelturg / Järelturg";
 
     priceInfo.innerHTML = `
       <strong>${symbol} hind:</strong> $${currentPrice} (${marketStatus})<br>
@@ -33,6 +36,7 @@ async function getNews() {
     const sentimentUrl = `https://finnhub.io/api/v1/news-sentiment?symbol=${symbol}&token=${API_KEY}`;
     const resSent = await fetch(sentimentUrl);
     const dataSent = await resSent.json();
+    console.log("Sentiment data:", dataSent);
 
     const bullish = dataSent.sentiment?.bullishPercent || 0.5;
     const bearish = dataSent.sentiment?.bearishPercent || 0.5;
@@ -57,11 +61,10 @@ async function getNews() {
     const dataCandle = await resCandle.json();
 
     if(dataCandle.s === "ok") {
-      const labels = dataCandle.t.map(t => new Date(t*1000).toLocaleTimeString());
       new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
+          labels: dataCandle.t.map(t => new Date(t*1000).toLocaleTimeString()),
           datasets: [{
             label: `${symbol} hind`,
             data: dataCandle.c,
@@ -99,13 +102,38 @@ async function getNews() {
         headline: headline,
         summary: cleanSummary,
         url: item.querySelector("link")?.textContent || "#",
-        datetime: new Date(item.querySelector("pubDate")?.textContent || "").getTime() / 1000,
+        datetime: new Date(item.querySelector("pubDate")?.textContent || "").getTime()/1000,
         source: "Fintel"
       };
     });
 
+    // --- Seeking Alpha RSS + CORS proxy ---
+    const saUrl = `${corsProxy}${encodeURIComponent("https://seekingalpha.com/symbol/" + symbol + ".xml")}`;
+    const resSA = await fetch(saUrl);
+    const rawSA = await resSA.json();
+    const xmlDocSA = parser.parseFromString(rawSA.contents, "text/xml");
+    const itemsSA = xmlDocSA.querySelectorAll("item");
+
+    const saNews = Array.from(itemsSA).map(item => {
+      const headline = item.querySelector("title")?.textContent || "";
+      const description = item.querySelector("description")?.textContent || "";
+      const cleanSummary = description.replace(/<\/?[^>]+(>|$)/g, "");
+      return {
+        headline: headline,
+        summary: cleanSummary,
+        url: item.querySelector("link")?.textContent || "#",
+        datetime: new Date(item.querySelector("pubDate")?.textContent || "").getTime()/1000,
+        source: "Seeking Alpha"
+      };
+    });
+
     // --- Koonda uudised ---
-    const combinedNews = [...dataFinn.slice(0,3), ...fintelNews.slice(0,3)];
+    const combinedNews = [
+      ...dataFinn.slice(0,3),
+      ...fintelNews.slice(0,3),
+      ...saNews.slice(0,3)
+    ];
+
     if(!combinedNews.length) {
       results.innerHTML = "Uudiseid viimase 3 päeva jooksul ei leitud.";
       return;
@@ -115,7 +143,7 @@ async function getNews() {
     results.innerHTML = "";
 
     // --- Kuvamine + sentiment värv ---
-    combinedNews.slice(0,3).forEach(n => {
+    combinedNews.slice(0,5).forEach(n => {
       const li = document.createElement("li");
       const text = (n.headline + " " + (n.summary||"")).toLowerCase();
       let color = "black";
@@ -133,9 +161,4 @@ async function getNews() {
       results.appendChild(li);
     });
 
-  } catch(e) {
-    console.error(e);
-    results.innerHTML = "Viga andmete laadimisel – võib olla CORS või API piirang";
-    priceInfo.innerHTML = "";
-  }
-}
+  } c
